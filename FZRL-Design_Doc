@@ -1,0 +1,255 @@
+FZRL Design doc
+
+General game mechanics:
+
+Time:
+100 ticks is a turn, an average action takes 100 ticks, aka 1 turn. After a creature takes an action, it takes x amount of ticks, that means that after x ticks that creature can take another action again. http://www.roguebasin.com/index.php?title=An_elegant_time-management_system_for_roguelikes
+
+Field of view: (implemented)
+I chose to use permissive-2 for the visual quality, even though it has pretty bad symmetry. (a creature can have another creature in its FOV without being seen itself)
+
+Dungeon generation:
+A simple BSP-tree based room generation system, where each room can be a specific type of room based on chances and the room size. There will be several levels, which simply mean that you can go deeper into the dungeon like most other roguelikes.
+
+The player and enemy creatues:
+All are based on the same attributes, and if possible, equipments.
+
+Loot system:
+Extensive loot system, with modifiers and rarity similar to many other RPG games.
+
+Traits and abilities:
+Fairly extensive trait system, which are passive modifiers, and abilities, which are active modifiers/actions. Creatures get access to these from a type of skill tree, some traits can also appear from being targeted by potions/scrolls. There exist both positive and negative traits.
+
+Potentially disallow backtracking:
+Once you go down a level, you can't go back up. This simplifies a lot of mechanics and might be the way to go.
+
+Progression:
+Progression in the game will be mainly item based, but there has to be some way to improve your primary attributes as well. Maybe have the ability to improve your primary attributes from potions and traits.
+You can get new traits/abilities from using skill points in the skill tree, the question is now how to get these trait points. Maybe 1 trait point every level you go down?
+I want to try and stay away from XP and see how it goes.
+Winning the game means beating the final boss, somewhere in the lower level, like at level 20 or so. Maybe even have several bosses in the game, at a more regular interval.
+
+Enemies:
+Most enemies in the game are human, they have the same potential as the player. Enemies spawn with some armour and a weapon, and drop those on death.
+
+Shop:
+Sometimes, a shop will appear on a level. This gives the player the potential to sell items for gold, and buy items for gold. Items can be everything from equipment to scrolls and potions. A shop will always have at least one potion to increase a primary attribute.
+
+IN DEPTH:
+
+Creature attributes:
+
+Primary attributes:
+
+Strength - increases melee damage, increases Stamina Points slightly, increases health points slightly
+Dexterity - increases ranged damage, increases dodge chance, increases Stamina Points slightly, increases accuracy, and decreases move speed cost slightly
+Intelligence - How strong your magic attacks are, you mana points, and resistance to magical debuffs
+
+Endurance - Affects health points, stamina points, resistance to physical debuffs
+
+Luck - Primairly used in finding rare items, but also slightly affects things like critical hit chance, dodge chance, and accuracy
+
+
+Secondary attributes:
+
+	  HP - Health Points, Your health amount
+	  SP - Stamina Points, Used to perform physical abilities
+	  MP - Mana Points, Used to perform magical abilities
+
+	  Defense/Armour rating - defense against physical attacks
+	  Magical Defense - defense against magical attacks
+
+	  Physical resistance - resistance against physical debuffs
+	  Magical resistance - resistance against magical debuffs
+
+	  Melee power - Modifier to physical damage
+	  Ranged power - Modifier to ranged damage
+	  Spell power - Modifier to magical damage
+
+	  Dodge chance - Modifier to dodge chance | chance to hit = accuracy - enemy dodge chance
+	  Critical hit chance - Modifier to critical chance, modified by enemy physical resistance
+	  Accuracy - Modifier to your enemies dodge chance | chance to hit = accuracy - enemy dodge chance
+
+	  Speed - 100% is default, most actions that take ticks to complete are multiplied by this value. A speed of 200% means actions take half as much time- (1/200% = 50%)
+    	  Movement speed - measured in ticks, 100 ticks is normal.
+
+    	  Max Carry Weight - Amount of kg you can carry/have equipped before you get overencumbered debuffs. Backpacks and other magical items can alleviate/increase this limit.
+	  Max Carry Space - Amount of items you can have in your inventory. 1 item will always take at most 1 space slot. Only affected by backpack.
+	  Item Luck Modifier - Modifier to your chance of finding rare items
+
+	  Primary attributes are strong modifiers to the secondary attributes. That means it's rare to improve the primary attributes, and primairly secondary attributes are improved.
+
+
+Items:
+
+	Equipment can have varying quality levels, in addition to its own item level.
+
+	The item level is a basic modifier to all of it's stats, both negative and positive.
+
+	Positive quality levels:
+
+		 Normal - nothing special
+		 Uncommon - 1 positive modifier
+		 Rare - 2 positive modifiers
+		 Epic - 3 positive modifiers
+		 Legendary - 5 positive modifiers - And better can modify primary attributes
+		 Artifact - 8 positive modifiers
+
+
+	Negative quality levels:
+
+		 Tainted - 1 negative modifier
+		 Corrupted - 2 negative modifiers
+		 Cursed - 3 negative modifiers - And worse can modify primary attributes
+		 Evil - 4 negative modifiers
+
+		 If the item is of a higher quality than normal, it has a 1 in 3 chance to have a negative quality of some level.
+
+
+	Equipment doesn't have any typical use requirements, only requirement of sorts is that equipped equipment increases your carry eqight.
+
+	All equipment rarities can increase secondary attributes, beyond what secondary attributes they normally modify. Primary attributes can only be changed by legendary or better, or cursed and worse gear.
+
+
+Weapons:
+
+All weapons have a base damage, a weapon type, and a subcategory of that type.
+
+Weapon types:
+
+	Melee weapon:
+		Greatsword - A slow but powerful weapon that is also 2-handed
+		Longsword - A slower one-handed sword
+		Shortsword - An average sword
+		Dagger - Fast one handed melee weapons
+		
+	Ranged weapon:
+		Crossbow - Heavy weapon that deals a lot of damage and has a high range, but is very slow
+		Longbow - Bow that is more accurate at long range
+		Shortbow - Bow that is more accurate at short range and can fire faster
+		
+	Magic weapon:
+		Wand - 2-handed
+		Staff - 1-handed
+		Book - gives a boost to some types of magic (for example fire magic)
+
+Weapon stats:
+
+       Damage - From x damage, to y damage, heavier weapons are more damaging
+       Accuracy - Base accuracy percentage, lighter weapons are more accurate
+       Range - Doesn't apply to melee weapons, max amount of tiles away this weapon can hit
+       Critical hit chance - Base chance to critical hit, lighter weapons have a higher base chance
+       Attack Speed - Amount ticks it takes to attack with the weapon
+	
+Arrows and Bolts:
+	
+       Crossbows use bolts, longbows use heavy arrows, shortbows use light arrows.
+       All the ranged weapons can use arrows of a different type, but suffer a 50% penalty to several stats of the arrow and weapon.
+
+       Bolts - Low weight 
+       Heavy Arrows - High weight
+       Light Arrows - Medium weight
+
+Special arrows & bolts:
+
+       Arrows and bolts can be infused with magic, dipped in poison, sharpened, etc. Making them more effective against certain types of enemies.
+
+       Sharpened - More damage but breaks after hitting an enemy.
+       Poison - Poisons the target, but loses its potency after hitting an enemy
+       Magical - Infused with a type of magic, Fire, Earth, Electric, Arcane, etc.
+       Special - Bomb arrows that explode, snare arrows that ensnare enemies etc. These arrows can't get retrieved usually.
+	
+Armour:
+
+Armour is seperated in 3 categories, heavy, medium, and light.
+
+	Heavy has the highest armour rating, but also the highest weight, possbiel small bonus to physical resistance, and eventual small penalties to speed.
+	Medium has medium armour rating and medium weight. Potentially small bonus to speed.
+	Light has lowest armour rating, but also lowest weight. Potentially small bonus to spell power.
+
+Armour type:
+
+	Helm - Medium significance.
+	Chest - High significance.
+	Pants - High significance.
+	Boots - Small significance. Can give a small bonus to movement speed.
+	Gloves - Small significance. Can give a small bonus to accuracy.
+	
+Armour stats:
+
+       Armour rating - additive increase to the creatures armour rating.
+       Speed modifier - small multiplicative modifier to speed.
+
+        if Heavy Armour:
+          	possible small boost to physical resistance
+
+	if Medium armour:
+		possible small boost to speed
+
+	if Light armour:
+		possible small boost to spell power
+
+	if Boots:
+		possible small boost to movement speed, if it's not heavy armour
+	
+	if Gloves:
+		possible small boost to accuracy
+	
+Other (Capes, rings, backpacks):
+
+	Cape - Small stealth increase
+	Amulet - Medium magical defense
+	Ring - Small magical defense, can have 2 rings equipped
+	Backpack - Lets you store items, also applies a weight multiplication to items in the bag. For example a good backpack could have a 0.75x multiplier to item weight. Could have a tradeoff between weight multiplication and store space.
+	
+Potions and scrolls:
+
+	Potions are consumables that you can either drink, throw at enemies, or craft with.
+		
+		Permanent stat changes - There are rare potions that can improve a single primary or secondary attribute permanently. These will be the primary way to get stronger stat wise besides items and traits.
+		Temporary buffs - Invisibility, speed boost, temporary primary stat boosts etc.
+		Temporary debuffs - Poison potion, explosive potion etc. Potions that are primary useful in crafting or throwing at enemies.
+		Other - Potions mainly used in crafting.
+
+	Scrolls are consumables that can invoke magical spells and enhancements.
+
+		Identification - Shows you what something does/is.
+		Unevil/Uncurse - Removes the negative modifiers from a weapon.
+		Enhancements - Able to enhance equipment, making it stronger.
+		Spell - A one time use spell that doesn't use mana. Those are usually stronger spells than can be learned at its level, and stronger versions of those spells overall.
+		
+
+Crafting:
+
+
+
+Runes and equipment enchancements:
+
+
+
+Rooms:
+
+
+
+Traits/abilities:
+
+
+
+Enemies:
+
+
+
+Sound, vision, and detection:
+
+
+
+Combat:
+
+
+
+Bosses and minibosses:
+
+
+
+Naming of items and enemies:
+
