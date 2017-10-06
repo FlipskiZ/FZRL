@@ -1,0 +1,383 @@
+FZRL Design doc
+
+
+This design document is a work in process, and there will probably be a lot more features planned than currently exist in this document. This is more of a personal guideline anyway.
+
+
+General game mechanics:
+
+Time:
+
+    100 ticks is a turn, an average action takes 100 ticks, aka 1 turn. After a creature takes an action, it takes x amount of ticks, that means that after x ticks that creature can take another action again. http://www.roguebasin.com/index.php?title=An_elegant_time-management_system_for_roguelikes
+
+
+Field of view: (implemented)
+
+    I chose to use permissive-2 for the visual quality, even though it has pretty bad symmetry. (a creature can have another creature in its FOV without being seen itself)
+
+
+Dungeon generation:
+
+    A simple BSP-tree based room generation system, where each room can be a specific type of room based on chances and the room size. There will be several levels, which simply mean that you can go deeper into the dungeon like most other roguelikes.
+
+
+The player and enemy creatues:
+
+    All are based on the same attributes, and if possible, equipments.
+
+
+Loot system:
+
+    Extensive loot system, with modifiers and rarity similar to many other RPG games.
+
+
+Traits and abilities:
+
+    Fairly extensive trait system, which are passive modifiers, and abilities, which are active modifiers/actions. Creatures get access to these from a type of skill tree, some traits can also appear from being targeted by potions/scrolls. There exist both positive and negative traits.
+
+
+Potentially disallow backtracking:
+
+    Once you go down a level, you can't go back up. This simplifies a lot of mechanics and might be the way to go.
+
+
+Progression:
+
+    Progression in the game will be mainly item based, but there has to be some way to improve your primary attributes as well. Maybe have the ability to improve your primary attributes from potions and traits.
+    You can get new traits/abilities from using skill points in the skill tree, the question is now how to get these trait points. Maybe 1 trait point every level you go down?
+    I want to try and stay away from XP and see how it goes.
+    Winning the game means beating the final boss, somewhere in the lower level, like at level 20 or so. Maybe even have several bosses in the game, at a more regular interval.
+
+
+Enemies:
+
+    Most enemies in the game are human, they have the same potential as the player. Enemies spawn with some armour and a weapon, and drop those on death.
+
+
+Shop:
+
+    Sometimes, a shop will appear on a level. This gives the player the potential to sell items for gold, and buy items for gold. Items can be everything from equipment to scrolls and potions. A shop will always have at least one potion to increase a primary attribute.
+
+
+IN DEPTH:
+
+Creature attributes:
+
+Primary attributes:
+
+    Strength - increases melee damage, increases Stamina Points slightly, increases health points slightly
+    Dexterity - increases ranged damage, increases dodge chance, increases Stamina Points slightly, increases accuracy, and decreases move speed cost slightly
+    Intelligence - How strong your magic attacks are, you mana points, and resistance to magical debuffs
+
+    Endurance - Affects health points, stamina points, resistance to physical debuffs
+
+    Luck - Primairly used in finding rare items, but also slightly affects things like critical hit chance, dodge chance, and accuracy
+
+
+Secondary attributes:
+
+    HP - Health Points, Your health amount
+    SP - Stamina Points, Used to perform physical abilities
+    MP - Mana Points, Used to perform magical abilities
+
+    Defense/Armour rating - defense against physical attacks
+    Magical Defense - defense against magical attacks
+
+    Physical resistance - resistance against physical debuffs
+    Magical resistance - resistance against magical debuffs
+
+    Melee power - Modifier to physical damage
+    Ranged power - Modifier to ranged damage
+    Spell power - Modifier to magical damage
+
+    Dodge chance - Modifier to dodge chance | chance to hit = accuracy - enemy dodge chance
+    Critical hit chance - Modifier to critical chance, modified by enemy physical resistance
+    Accuracy - Modifier to your enemies dodge chance | chance to hit = accuracy - enemy dodge chance
+
+    Speed - 100% is default, most actions that take ticks to complete are multiplied by this value. A speed of 200% means actions take half as much time- (1/200% = 50%)
+    Movement speed - measured in ticks, 100 ticks is normal.
+
+    Max Carry Weight - Amount of kg you can carry/have equipped before you get overencumbered debuffs. Backpacks and other magical items can alleviate/increase this limit.
+    Max Carry Space - Amount of items you can have in your inventory. 1 item will always take at most 1 space slot. Only affected by backpack.
+    Item Luck Modifier - Modifier to your chance of finding rare items
+
+    Primary attributes are strong modifiers to the secondary attributes. That means it's rare to improve the primary attributes, and primairly secondary attributes are improved.
+
+
+Items:
+
+    Equipment can have varying quality levels, in addition to its own item level.
+
+    The item level is a basic modifier to all of it's stats, both negative and positive.
+
+    Rune slots:
+
+    	There will always be a chance for the item to have rune slots, epic and above will always have at least 1 rune slot.
+
+	Equipment can have 1-3 rune slots avaliable.
+
+    Positive quality levels:
+
+	Normal - nothing special
+	Uncommon - 1 positive modifier
+	Rare - 2 positive modifiers
+	Epic - 3 positive modifiers - And better always has at least 1 rune slot
+	Legendary - 5 positive modifiers - And better can modify primary attributes
+	Artifact - 8 positive modifiers
+
+
+    Negative quality levels:
+
+        Tainted - 1 negative modifier
+	Corrupted - 2 negative modifiers
+	Cursed - 3 negative modifiers - And worse can modify primary attributes
+	Evil - 4 negative modifiers
+
+	If the item is of a higher quality than normal, it has a 1 in 3 chance to have a negative quality of some level.
+
+
+    Equipment doesn't have any typical use requirements, only requirement of sorts is that equipped equipment increases your carry eqight.
+
+    All equipment rarities can increase secondary attributes, beyond what secondary attributes they normally modify. Primary attributes can only be changed by legendary or better, or cursed and worse gear.
+
+
+Weapons:
+
+All weapons have a base damage, a weapon type, and a subcategory of that type.
+
+Weapon types:
+
+    Melee weapon:
+	Greatsword - A slow but powerful weapon that is also 2-handed
+	Longsword - A slower one-handed sword
+	Shortsword - An average sword
+	Dagger - Fast one handed melee weapons
+		
+    Ranged weapon:
+	Crossbow - Heavy weapon that deals a lot of damage and has a high range, but is very slow
+	Longbow - Bow that is more accurate at long range
+	Shortbow - Bow that is more accurate at short range and can fire faster
+		
+    Magic weapon:
+	Wand - 2-handed
+	Staff - 1-handed
+	Book - gives a boost to some types of magic (for example fire magic)
+
+Weapon stats:
+
+    Damage - From x damage, to y damage, heavier weapons are more damaging
+    Accuracy - Base accuracy percentage, lighter weapons are more accurate
+    Range - Doesn't apply to melee weapons, max amount of tiles away this weapon can hit
+    Critical hit chance - Base chance to critical hit, lighter weapons have a higher base chance
+    Attack Speed - Amount ticks it takes to attack with the weapon
+	
+Arrows and Bolts:
+	
+    Crossbows use bolts, longbows use heavy arrows, shortbows use light arrows.
+    All the ranged weapons can use arrows of a different type, but suffer a 50% penalty to several stats of the arrow and weapon.
+
+    Bolts - Low weight 
+    Heavy Arrows - High weight
+    Light Arrows - Medium weight
+
+Special arrows & bolts:
+
+    Arrows and bolts can be infused with magic, dipped in poison, sharpened, etc. Making them more effective against certain types of enemies.
+
+    Sharpened - More damage but breaks after hitting an enemy.
+    Poison - Poisons the target, but loses its potency after hitting an enemy
+    Magical - Infused with a type of magic, Fire, Earth, Electric, Arcane, etc.
+    Special - Bomb arrows that explode, snare arrows that ensnare enemies etc. These arrows can't get retrieved usually.
+	
+Armour:
+
+Armour is seperated in 3 categories, heavy, medium, and light.
+
+    Heavy has the highest armour rating, but also the highest weight, possbiel small bonus to physical resistance, and eventual small penalties to speed.
+    Medium has medium armour rating and medium weight. Potentially small bonus to speed.
+    Light has lowest armour rating, but also lowest weight. Potentially small bonus to spell power.
+
+Armour type:
+
+    Helm - Medium significance.
+    Chest - High significance.
+    Pants - High significance.
+    Boots - Small significance. Can give a small bonus to movement speed.
+    Gloves - Small significance. Can give a small bonus to accuracy.
+	
+Armour stats:
+
+    Armour rating - additive increase to the creatures armour rating.
+    Speed modifier - small multiplicative modifier to
+    
+    if Heavy Armour:
+        possible small boost to physical resistance
+
+    if Medium armour:
+	possible small boost to speed
+
+    if Light armour:
+	possible small boost to spell power
+
+    if Boots:
+	possible small boost to movement speed, if it's not heavy armour
+	
+    if Gloves:
+	possible small boost to accuracy
+	
+Other (Capes, rings, backpacks):
+
+    Cape - Small stealth increase
+    Amulet - Medium magical defense
+    Ring - Small magical defense, can have 2 rings equipped
+    Backpack - Lets you store items, also applies a weight multiplication to items in the bag. For example a good backpack could have a 0.75x multiplier to item weight. Could have a tradeoff between weight multiplication and store space.
+	
+Potions and scrolls:
+
+    Potions are consumables that you can either drink, throw at enemies, or craft with.
+		
+        Permanent stat changes - There are rare potions that can improve a single primary or secondary attribute permanently. These will be the primary way to get stronger stat wise besides items and traits.
+		  There can also be potions that give you extra skill points.
+	Temporary buffs - Invisibility, speed boost, temporary primary stat boosts etc.
+	Temporary debuffs - Poison potion, explosive potion etc. Potions that are primary useful in crafting or throwing at enemies.
+	Other - Potions mainly used in crafting.
+
+    Scrolls are consumables that can invoke magical spells and enhancements.
+
+	Identification - Shows you what something does/is.
+	Unevil/Uncurse - Removes the negative modifiers from a weapon.
+	Enhancements - Able to enhance equipment, making it stronger.
+	Spell - A one time use spell that doesn't use mana. Those are usually stronger spells than can be learned at its level, and stronger versions of those spells overall.
+		
+
+Crafting:
+
+	Crafting may or may not become a fairly central part of the game, as of now, I intend to add a few useful crafting recepies to the game, potentially integrating it with magic for magical recepies and enhancements.
+	Crafting is not a priority as of now.
+
+Runes and equipment enchancements:
+
+        You will be able to find runes in the game, which you can insert into rune slots of equipment, if it has a rune slot avaliable.
+      	Runes will usually be boost to the equipments stats, such as extra damage, extra armour, magical damage etc.
+      	There might be some rare special runes which add special benefits to the equipment.
+
+      	Enhancements of equipment is mainly applied from enhancing scrolls, which simply make the weapon more power, effectively the same as if it had a higher item level.
+
+Rooms:
+    
+    Rooms will have to adhere to the dynamic nature of the map generator. Room will be variable sizes, and not have too strict ratio limits.
+    Rooms can be small, medium, or large, based on the length of their smallest side. So, thin but long rooms would usually be treated as a small room.
+    Rooms size only matters in the amount of features the room has, the bigger the more features it can fit.
+
+    All rooms can have enemies, but some rooms can have more than others, for example a training room will usually have more and stronger enemies, but also more equipment loot.
+
+    Room types:
+
+        For now rooms will be based on a room type, which dictates what it will contain and the content's level relative to the map.
+
+	Common:
+	    Common rooms are your usual run of the mill rooms without many special features. These rooms stand for about 80% of a level
+
+	    Empty room - Doesn't contain anything beyond a few enemies. Most common room.
+	    Bathroom - Contains a small amount of potions or crafting supplies, in addition to 1 enemy. Only small rooms.
+	    Park - Doesn't contain much beyond a few enemies and a lot of green flora. Only big rooms.
+	    Living room - Contains a few supplies and a medium amount of enemies. Only medium rooms.
+	    Bedroom - Amount of beds is based on room size. A few items, some equipment.
+	    Kitchen - A few potions, and small melee weapons.
+	    Study room - A few scrolls, and a decent amount of enemies.
+	    Common storage room - a storage room that has a medium-high amount of enemies and contains a decent amount of items
+
+	Uncommon:
+	    Uncommon rooms stand for about 15% of a level
+
+	    Barracks - Where soliders live. Contains a lot of enemies but also potentially a lot of equipment
+	    Crafting room - Contains a lot of crafting materials, contains a few enemies with good gear
+	    Alchemy room - Contains a lot of potions, contains enemies that throw a lot of potions at you
+	    Library - Contains a lot of scrolls, contains enemies that use a lot of scrolls against you
+
+	    Normal shop - A room where you can sell/buy items.
+
+	Rare:
+	    Rare rooms don't appear too often, stand for about 5% of a level
+
+	    Treasure/High quality storage room - As expected, contains a lot of loot
+	    Armoury - Cointains a lot of equipment, but also well-equipped enemies. 
+	    Training room - Contains a few enemies that are stronger than usual, but also usually contains potions that improve your attributes and/or give skill points
+
+	    Special Shop - A room where you can sell/buy powerful items and high-quality potions. 1 Special shop every 5 levels.
+
+	Unique:
+	    Unique rooms are very rare rooms that can't appear more than once per game
+
+	    Miniboss room - There will be a few minibosses in the game, but the same miniboss can only appear once in the game and each miniboss has its own room, and there will be a limit to how many minibosses can be in a game.
+	    Artifact treasure room - This room will always have an equipment item of artifact level quality. That doesn't mean it will be the only artifact quality item in a game.
+
+
+Shops:
+
+    Shops are a centralish part of the game, mainly because items are the central part of the game. You can trade items for gold, where items you buy usually cost 4x the amount you get when selling an item.
+    Gold, aka the game currency, weights 1kg and take up 1 space every 100 gold pieces. So that hoarding money shouldn't be a big possibility.
+    Unidentified items all sell for the same amount, which will be the average price for that items quality/item class.
+    Quality levels, both positive and negative, effectively act as multipliers for the price. Where item level and rune slots further count as a small multiplier.
+
+Traits/abilities:
+
+    A big part of the game also are traits, these will effectively be what differenciate creatures from eachother.
+    Traits such as being able to see further, hear better, move faster, etc.
+    Or, alternatively, negative traits, such as being deaf.
+
+    The player will have access to a few more traits than the enemy, simply because some traits will give the player more information. Such as seeing enemy vision range, and seeing sound waves.
+
+    Creatures also have abilities, which essentially are active traits or spells. Such as blink, teleportation, summoning, rush, speed boost, etc.
+
+    All of these are based in a big tree, where most of the traits/abilities have some prerequisites before they can be unlocked.
+
+Enemies:
+
+    For now, the whole dungeon will only be occupied by other humans, but vary in their specializations and thus AI slightly.
+
+    Simply put, Warriors, Rangers, and Wizards. Also potentially assassins and so on.
+
+    Their AI will be fairy simple, Warriors rush into you, Rangers and Wizards keep their distance, where rangers potentially kite the player somewhat, rushing in, hitting once, then running away to ranged again.
+
+Sound, vision, and detection:
+
+    There are 4 values that determine if a creature can see another creature.
+
+    Projected from the creature/object:
+        Sight - How well the creature can see
+    	Loudness - How loud this action is
+    
+    Affected by the creature:
+    	Stealthiness - How hard it is to see this creature
+	Deafness - How badly the creature can hear
+
+    The naming choices are a bit weird so that the mechanics can be intuitive.
+
+    Essentially, sight determines how many tiles away the creature can see, and can see/detect another creature if its sight subtracted from the creatures stealthiness is more than 0. Where sight is reduced by 1 for every tile away the creature is.
+    That means, that a creature can see another creature if sight - distance - creature stealthiness > 0
+
+    Sound works similairly, except that it isn't limited by FOV, but is rather determined by pathfinding. Effectively achieved by running a pathfinding algorithm and calculating the amount of tiles away the other creature is.
+    A creature can hear another creature if loudness - distance - deafness > 0. Possibly: the higher the value, the more accurately can the location be predicted.
+
+Combat:
+
+    Combat is fairly typical roguelike combat, if you move into an enemy you hit it, unless it's a peaceful creature, then you won't attack it automatically.
+    There will be an attack button, probably 'a', that when pressed lets you go into a more advanced attack screen, with a lot of stats, chances of hitting, chances of critical hit, damage, etc.
+    When in the attack screen you can swap into the examine creature screen, which lets you show similar stats for your enemy.
+
+    You can use default melee attacks, ranged attacks, magic attacks, or you can use abilities, spells, potions etc.
+    
+
+
+Bosses and minibosses:
+
+    Not too vital for now. There might be only 1 or several bosses, and a few minibosses each game each with special loot.
+
+Naming of items and enemies:
+
+    At first the naming will be very basic, basically just describing the item/enemy. A more proper naming system can be added later.
+
+UI and graphics:
+
+    Not importiant as of now, this can be added/changed at a later time. Although particle effects and a decent can become a possibility in the future.
