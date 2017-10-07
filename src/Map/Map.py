@@ -11,9 +11,10 @@ class Tiles(IntEnum): #Tiles that appear on the map, the terrain
     WALL = 2
     CLOSED_DOOR = 3
     OPEN_DOOR = 4
+    STAIRS = 5
 
     
-class TilePropertiesClass:
+class TilePropertiesClass: #A structure for the static property of a tile
     def __init__(self, name, char, isWalkable, isTransparent=None, fColor=TCOD.white, bColor=TCOD.black):
         self.name = name
         self.char = char
@@ -26,18 +27,20 @@ class TilePropertiesClass:
 
 #(Tile name, Printed character, Can walk on, Can see through, Character color, Background color)
 tileProperties = [
-    TilePropertiesClass("Empty", ' ', False),
+    TilePropertiesClass("Empty", '*', False),
     TilePropertiesClass("Floor", '.', True),
     TilePropertiesClass("Wall", '#', False),
     TilePropertiesClass("Closed Door", '+', False),
     TilePropertiesClass("Open Door", '/', True),
+    TilePropertiesClass("Stairs", '>', True),
 ]
 
 
-class MapClass:
-    mapLevelsList = [] #A list of all the map level instances. index 0 is level 1, index 10 is level 11, etc.
+class Map:
+    instance = None #Since we disallow backtracking we only need to store 1 map
     
-    def __init__(self, mapWidth, mapHeight, minRoomWidth=5, minRoomHeight=5, maxRoomWidth=25, maxRoomHeight=25, mapSeed=None):
+    def __init__(self, mapWidth, mapHeight, level, minRoomWidth=5, minRoomHeight=5, maxRoomWidth=25, maxRoomHeight=25, mapSeed=None):
+        
         self.mapWidth = mapWidth
         self.mapHeight = mapHeight
         self.minRoomWidth = minRoomWidth
@@ -47,6 +50,14 @@ class MapClass:
         self.mapSeed = mapSeed
 
         self.mapGenRand = None
+
+        self.roomList = []
+        self.corridorList = []
+
+        self.level = level
+
+        self.exitX = 0
+        self.exitY = 0
         
         self.__generateMap()
 
@@ -69,8 +80,6 @@ class MapClass:
                 self.mapSeed = int(round(time()))
             self.mapGenRand = TCOD.random_new_from_seed(self.mapSeed)
         
-        #""" #BSP Dungeon generation outcommenting
-
         self.BSPTree = TCOD.bsp_new_with_size(0, 0, self.mapWidth, self.mapHeight)
 
         #So we get the average iterations needed to create our desired sized, this is so the amount of rooms scales with the room sizes and map sizes.
@@ -84,10 +93,17 @@ class MapClass:
 
         #Traverses the level from bottom to top, this way we can simply draw rooms and corridors and be safe that things are overwritten as they are supposed to.
         TCOD.bsp_traverse_inverted_level_order(self.BSPTree, self.__processBSPNode, 0)
-
+        
         #Rest of the generation
-
-        #""" #BSP Dungeon generation outcommenting
+        while True:
+            randX = TCOD.random_get_int(self.mapGenRand, 0, self.mapWidth - 1)
+            randY = TCOD.random_get_int(self.mapGenRand, 0, self.mapHeight - 1)
+            
+            if self.getTileInt(randX, randY) == Tiles.FLOOR:
+                self.mapArray[randX][randY] = Tiles.STAIRS
+                self.exitX = randX
+                self.exitY = randY
+                break
 
         self.TCODMap = TCOD.map_new(self.mapHeight, self.mapWidth) #Create a TCOD map, neccesary for some TCOD functions.
         
@@ -138,26 +154,15 @@ class MapClass:
                 roomY = TCOD.random_get_int(self.mapGenRand, node.y, node.y + node.h - roomHeight)
 
                 #We make sure that the center cell of the node is inside the room
-                if self.checkIfAreaIsInsideArea(node.x + node.w / 2, node.y + node.h / 2, 1, 1,
+                if self.checkIfAreaIsInsideArea(node.x + node.w / 2, node.y + node.h / 2, 0, 0,
                                                 roomX, roomY, roomWidth, roomHeight):
                     break
-                
-            for x in range(roomX, roomX + roomWidth):
-                for y in range(roomY, roomY + roomHeight):
-                    if x == roomX or y == roomY or x == roomX + roomWidth - 1 or y == roomY + roomHeight - 1:
-                        self.mapArray[x][y] = Tiles.WALL
-                    else:
-                        self.mapArray[x][y] = Tiles.FLOOR
 
-            #We store the room values in the node, so that we may easily retrieve it in the future
-            node.roomWidth = roomWidth
-            node.roomHeight = roomHeight
-
-            node.roomX = roomX
-            node.roomY = roomY
+            self.roomList.append(Room(roomX, roomY, roomWidth, roomHeight))
+            self.roomList[-1].generateEmptyRoom(self.mapArray) #[-1] means get last element
         else:
             #To create the paths, simply make a path from the center of each node
-            pathSize = 1 #Actual size of path will be (pathSize-1)*2 + 1
+            pathSize = 1
             
             centerLX = TCOD.bsp_left(node).x + round(int(TCOD.bsp_left(node).w / 2))
             centerLY = TCOD.bsp_left(node).y + round(int(TCOD.bsp_left(node).h / 2))
@@ -169,38 +174,98 @@ class MapClass:
             if centerLY < centerRY:
                 horizontalPath = False
 
+            corridorX = 0
+            corridorY = 0
+            corridorWidth = 0
+            corridorHeight = 0
+
             if horizontalPath:
-                for x in range(centerLX, centerRX + 1):
-                    for y in range(centerLY - pathSize, centerLY + pathSize + 1): #The center y values will be the same of both nodes
-                        if x == centerLX or y == centerLY - pathSize or x == centerRX or y == centerLY + pathSize:
-                            if self.mapArray[x][y] != Tiles.FLOOR:
-                                self.mapArray[x][y] = Tiles.WALL
-                        else:
-                            self.mapArray[x][y] = Tiles.FLOOR
+                corridorX = centerLX
+                corridorY = centerLY - int(math.ceil(pathSize / 2))
+                corridorWidth = centerRX - centerLX + 1 #We add 1 because there is 1 wall in the way when connecting to another corridor
+                corridorHeight = pathSize + 2 #We add 2 because there are 2 walls we generate
             else:
-                for x in range(centerLX - pathSize, centerLX + pathSize + 1): #The center x values will be the same of both nodes
-                    for y in range(centerLY, centerRY + 1):
-                        if x == centerLX - pathSize or y == centerLY or x == centerLX + pathSize or y == centerRY:
-                            if self.mapArray[x][y] != Tiles.FLOOR:
-                                self.mapArray[x][y] = Tiles.WALL
-                        else:
-                            self.mapArray[x][y] = Tiles.FLOOR
+                corridorX = centerLX - int(math.ceil(pathSize / 2))
+                corridorY = centerLY
+                corridorWidth = pathSize + 2
+                corridorHeight = centerRY - centerLY + 1
                 
+            self.corridorList.append(Corridor(corridorX, corridorY, corridorWidth, corridorHeight, horizontalPath))
+            self.corridorList[-1].generateEmptyCorridor(self.mapArray) #[-1] means get last element
+
         return True
 
+    def revealMap(self, includingEmptyTiles=True):
+        if includingEmptyTiles:
+            self.seenMapArray = [[True for _ in range(self.mapWidth)] for _ in range(self.mapHeight)]
+        else:
+            for x in range(self.mapWidth):
+                for y in range(self.mapHeight):
+                    if not self.mapArray[x][y] == Tiles.EMPTY:
+                        self.seenMapArray[x][y] = True
+                        
     def regenerateMap(self):
         self.__generateMap()
+
+    def getTileInt(self, posX, posY):
+        return self.mapArray[posX][posY]
         
     def getTile(self, posX, posY):
         return tileProperties[self.mapArray[posX][posY]]
-
+    
     def getTCODMap(self):
         return self.TCODMap
     
     def checkInsideBounds(self, posX, posY):
         return posX >= 0 and posY >= 0 and posX < self.mapWidth and posY < self.mapHeight
 
-    def checkIfAreaIsInsideArea(self, BX, BY, BW, BH, AX, AY, AW, AH):
-        if BX + BW < AX + AW and BX > AX and BY > AY and BY + BH < AY + AH:
+    def checkIfAreaIsInsideArea(self, AX, AY, AW, AH, BX, BY, BW, BH):
+        if AX + AW < BX + BW and AX > BX and AY > BY and AY + AH < BY + BH:
             return True
         return False
+
+    def checkIfCellIsInsideRoom(self, posX, posY):
+        for i, room in enumerate(self.roomList):
+            if self.checkIfAreaIsInsideArea(posX, posY, 0, 0, room.posX - 1, room.posY - 1, room.width + 1, room.height + 1):
+                return i
+        return -1 #If there are no rooms containing this cell, return -1
+
+    def checkIfCellIsInsideCorridor(self, posX, posY):
+        for i, corridor in enumerate(self.corridorList):
+            if self.checkIfAreaIsInsideArea(posX, posY, 0, 0, corridor.posX - 1, corridor.posY - 1, corridor.width + 1, corridor.height + 1):
+                return i
+        return -1 #If there are no corridors containing this cell, return -1
+
+    
+class Room:
+    def __init__(self, posX, posY, width, height):
+        self.posX = posX
+        self.posY = posY
+        self.width = width
+        self.height = height
+
+    def generateEmptyRoom(self, mapArray):
+        for x in range(self.posX, self.posX + self.width):
+            for y in range(self.posY, self.posY + self.height):
+                if x == self.posX or y == self.posY or x == self.posX + self.width - 1 or y == self.posY + self.height - 1:
+                    mapArray[x][y] = Tiles.WALL
+                else:
+                    mapArray[x][y] = Tiles.FLOOR
+
+    
+class Corridor:
+    def __init__(self, posX, posY, width, height, isHorizontal):
+        self.posX = posX
+        self.posY = posY
+        self.width = width
+        self.height = height
+        self.isHorizontal = isHorizontal
+
+    def generateEmptyCorridor(self, mapArray):
+        for x in range(self.posX, self.posX + self.width):
+            for y in range(self.posY, self.posY + self.height):
+                if x == self.posX or y == self.posY or x == self.posX + self.width - 1 or y == self.posY + self.height - 1:
+                    if mapArray[x][y] == Tiles.EMPTY:
+                        mapArray[x][y] = Tiles.WALL
+                else:
+                    mapArray[x][y] = Tiles.FLOOR

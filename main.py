@@ -1,11 +1,15 @@
-from src.Camera import CameraClass
-from src.Map import MapClass, Tiles
-from src.Player import PlayerClass
+from src.Camera import Camera
+from src.Map.Map import Map, Tiles
+from src.Entities.Living.Player import Player
 
 import libtcodpy as TCOD
 
 from time import sleep
 import random
+
+ENABLE_NO_FOV = False
+ENABLE_ROOM_DEBUG = False
+ENABLE_NO_MOVEMENT_BLOCK = False
 
 SCREEN_WIDTH = 80
 SCREEN_HEIGHT = 60
@@ -13,17 +17,18 @@ SCREEN_HEIGHT = 60
 GUI_WIDTH = 25
 GUI_HEIGHT = 5
 
-#Game width and height should be an odd number so that the playerInstance is perfectly centered instead 1 off to the side
+#Game width and height should be an odd number so that the Player.instance is perfectly centered instead 1 off to the side
 GAME_WIDTH = SCREEN_WIDTH - GUI_WIDTH
 GAME_HEIGHT = SCREEN_HEIGHT - GUI_HEIGHT
 
 MAP_WIDTH = 128  # Temporary values
 MAP_HEIGHT = 128
 
+fpsLimit = 60
+
 
 def loadConfig():
     fontName = "terminal8x8_gs_ro.png"
-    fpsLimit = 60
 
     cFile = open("config/config.ini") #Open up the configuration file in read only mode
 
@@ -48,22 +53,38 @@ def loadConfig():
     
     TCOD.console_set_default_background(0, TCOD.black)
     TCOD.console_set_default_foreground(0, TCOD.white)
-
     
-loadConfig()
+
+def initGame():
+    loadConfig()
+
+    Map.instance = Map(MAP_WIDTH, MAP_HEIGHT, 1)
+    Camera.instance = Camera(0, 0)
+    while True:
+        randX = random.randint(0, MAP_WIDTH - 1)
+        randY = random.randint(0, MAP_HEIGHT - 1)
+        if Map.instance.getTile(randX, randY).isWalkable:
+            Player.instance = Player(randX, randY)
+            break
 
 
 def handleKeys():
     passTurn = False
     moveAction = False
     
-    didAction = False #Loop and ask the playerInstance for keys until the playerInstance takes an action
+    didAction = False #Loop and ask the Player.instance for keys until the Player.instance takes an action
     
     while not didAction:
         deltaX = 0
         deltaY = 0
 
-        key = TCOD.console_wait_for_keypress(True)
+        key = TCOD.Key()
+        mouse = TCOD.Mouse()
+        while True:
+            TCOD.sys_check_for_event(TCOD.EVENT_KEY_PRESS | TCOD.EVENT_MOUSE, key, mouse)
+            if key.vk != TCOD.KEY_NONE:
+                break
+            sleep(1 / fpsLimit)
         
         if key.vk == TCOD.KEY_ENTER and key.lalt:
             #Alt+Enter: toggle fullscreen
@@ -73,7 +94,7 @@ def handleKeys():
             return True  #exit game
 
         if key.c == ord('r'):
-            MapClass.mapLevelsList[0].regenerateMap()
+            Map.instance.regenerateMap()
             passTurn = True
         
         #movement keys
@@ -116,15 +137,27 @@ def handleKeys():
         elif key.vk == TCOD.KEY_KP5: #Pass turn
             passTurn = True
             
+        elif key.text == b">":
+            if Map.instance.getTileInt(Player.instance.getPosX(), Player.instance.getPosY()) == Tiles.STAIRS:
+                Map.instance = Map.instance = Map(MAP_WIDTH, MAP_HEIGHT, Map.instance.level + 1)
+                while True:
+                    randX = random.randint(0, MAP_WIDTH - 1)
+                    randY = random.randint(0, MAP_HEIGHT - 1)
+                    if Map.instance.getTile(randX, randY).isWalkable:
+                        Player.instance.posX = randX
+                        Player.instance.posY = randY
+                        break
+                moveAction = True
+            
         if moveAction:
-            didAction = playerInstance.movePlayer(MapClass.mapLevelsList[0], deltaX, deltaY)
+            didAction = Player.instance.movePlayer(Map.instance, deltaX, deltaY, ENABLE_NO_MOVEMENT_BLOCK)
         elif passTurn:
             didAction = True
-
-            
+        
+    
 def updateEntities():
-    playerInstance.updatePlayer(MapClass.mapLevelsList[0])
-    cameraInstance.updatePositionFromCoordinates(playerInstance.getPosX(), playerInstance.getPosY(), MAP_WIDTH, MAP_HEIGHT, GAME_WIDTH, GAME_HEIGHT)
+    Player.instance.updatePlayer(Map.instance)
+    Camera.instance.updatePositionFromCoordinates(Player.instance.getPosX(), Player.instance.getPosY(), MAP_WIDTH, MAP_HEIGHT, GAME_WIDTH, GAME_HEIGHT)
     
     
 def updateGame():
@@ -137,39 +170,47 @@ def drawMap():
     rangeYStart = 0
     rangeYStop = 0
     
-    if MapClass.mapLevelsList[0].checkInsideBounds(GAME_WIDTH, GAME_HEIGHT):
-        rangeXStart = cameraInstance.getPosX()
-        rangeXStop = cameraInstance.getPosX() + GAME_WIDTH
-        rangeYStart = cameraInstance.getPosY()
-        rangeYStop = cameraInstance.getPosY() + GAME_HEIGHT
+    if Map.instance.checkInsideBounds(GAME_WIDTH, GAME_HEIGHT):
+        rangeXStart = Camera.instance.getPosX()
+        rangeXStop = Camera.instance.getPosX() + GAME_WIDTH
+        rangeYStart = Camera.instance.getPosY()
+        rangeYStop = Camera.instance.getPosY() + GAME_HEIGHT
     else:
-        rangeXStop = MapClass.mapLevelsList[0].mapWidth
-        rangeYStop = MapClass.mapLevelsList[0].mapHeight
+        rangeXStop = Map.instance.mapWidth
+        rangeYStop = Map.instance.mapHeight
         
     for x in range(rangeXStart, rangeXStop):
         for y in range(rangeYStart, rangeYStop):
-            if TCOD.map_is_in_fov(playerInstance.FOVMap, x, y):
-                tile = MapClass.mapLevelsList[0].getTile(x, y)
-                TCOD.console_put_char_ex(0, cameraInstance.getOffsetX(x), cameraInstance.getOffsetY(y),
+            if TCOD.map_is_in_fov(Player.instance.FOVMap, x, y) or ENABLE_NO_FOV:
+                tile = Map.instance.getTile(x, y)
+                TCOD.console_put_char_ex(0, Camera.instance.getOffsetX(x), Camera.instance.getOffsetY(y),
                                          tile.char, tile.fColor, tile.bColor)
-                MapClass.mapLevelsList[0].seenMapArray[x][y] = True
+                Map.instance.seenMapArray[x][y] = True
             else:
-                if MapClass.mapLevelsList[0].seenMapArray[x][y]:
-                    tile = MapClass.mapLevelsList[0].getTile(x, y)
-                    TCOD.console_put_char_ex(0, cameraInstance.getOffsetX(x), cameraInstance.getOffsetY(y),
+                if Map.instance.seenMapArray[x][y]:
+                    tile = Map.instance.getTile(x, y)
+                    TCOD.console_put_char_ex(0, Camera.instance.getOffsetX(x), Camera.instance.getOffsetY(y),
                                              tile.char, tile.fColor * 0.5, tile.bColor * 0.5)
-
+            if ENABLE_ROOM_DEBUG:
+                if Map.instance.checkIfCellIsInsideRoom(x, y) != -1:
+                    TCOD.console_set_char_background(0, Camera.instance.getOffsetX(x), Camera.instance.getOffsetY(y), TCOD.dark_orange)
+                if Map.instance.checkIfCellIsInsideCorridor(x, y) != -1:
+                    TCOD.console_set_char_background(0, Camera.instance.getOffsetX(x), Camera.instance.getOffsetY(y), TCOD.dark_yellow)
+                
                 
 def drawGUI():
-    TCOD.console_print(0, GAME_WIDTH, 1, "Pos X: " + str(playerInstance.getPosX()))
-    TCOD.console_print(0, GAME_WIDTH, 2, "Pos Y: " + str(playerInstance.getPosY()))
-    TCOD.console_print(0, GAME_WIDTH, 4, "Cam X: " + str(cameraInstance.getPosX()))
-    TCOD.console_print(0, GAME_WIDTH, 5, "Cam Y: " + str(cameraInstance.getPosY()))
-    TCOD.console_print(0, GAME_WIDTH, 7, "Turn " + str(playerInstance.turnsAlive))
+    TCOD.console_print(0, GAME_WIDTH, 1, "Pos X: " + str(Player.instance.getPosX()))
+    TCOD.console_print(0, GAME_WIDTH, 2, "Pos Y: " + str(Player.instance.getPosY()))
+    TCOD.console_print(0, GAME_WIDTH, 4, "Cam X: " + str(Camera.instance.getPosX()))
+    TCOD.console_print(0, GAME_WIDTH, 5, "Cam Y: " + str(Camera.instance.getPosY()))
+    TCOD.console_print(0, GAME_WIDTH, 7, "Ext X: " + str(Map.instance.exitX))
+    TCOD.console_print(0, GAME_WIDTH, 8, "Ext Y: " + str(Map.instance.exitY))
+    TCOD.console_print(0, GAME_WIDTH, 10, "Level: " + str(Map.instance.level))
+    TCOD.console_print(0, GAME_WIDTH, 12, "Turn " + str(Player.instance.turnsAlive))
 
     
 def drawEntities():
-    playerInstance.drawPlayer(cameraInstance)
+    Player.instance.drawPlayer(Camera.instance)
 
     
 def drawGame():
@@ -178,26 +219,16 @@ def drawGame():
     drawMap()
     drawGUI()
     drawEntities()
-
+    
     TCOD.console_flush()
 
     
-MapClass.mapLevelsList.append(MapClass(MAP_WIDTH, MAP_HEIGHT))
-
-while True:
-    randX = random.randint(0, MAP_WIDTH - 1)
-    randY = random.randint(0, MAP_HEIGHT - 1)
-    if MapClass.mapLevelsList[0].getTile(randX, randY).isWalkable:
-        playerInstance = PlayerClass(randX, randY)
-        break
-
-cameraInstance = CameraClass(0, 0)
+#Main
+initGame()
 
 while not TCOD.console_is_window_closed():
     updateGame()
     drawGame()
     
-    #handle keys and exit game if needed
-    exit = handleKeys()
-    if exit:
+    if handleKeys():
         break

@@ -1,7 +1,9 @@
 import libtcodpy as TCOD
 
 
-class PlayerClass:
+class Player:
+    instance = None
+    
     def __init__(self, posX, posY, sightRadius=0):
         self.turnsAlive = 0
 
@@ -15,12 +17,12 @@ class PlayerClass:
 
         self.FOVMap = None
 
-    def movePlayer(self, mapInstance, deltaX, deltaY):
+    def movePlayer(self, mapInstance, deltaX, deltaY, noBlock=False):
         newX = self.posX + deltaX
         newY = self.posY + deltaY
         
         if (mapInstance.checkInsideBounds(newX, newY) and
-           mapInstance.getTile(newX, newY).isWalkable):
+           (mapInstance.getTile(newX, newY).isWalkable or noBlock)):
 
             self.posX = newX
             self.posY = newY

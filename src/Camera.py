@@ -1,4 +1,6 @@
-class CameraClass:
+class Camera:
+    instance = None
+    
     def __init__(self, posX, posY):
         self.cameraPosX = posX
         self.cameraPosY = posY
