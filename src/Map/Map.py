@@ -182,7 +182,7 @@ class Map:
             if horizontalPath:
                 corridorX = centerLX - 1
                 corridorY = centerLY - int(math.ceil(pathSize / 2))
-                corridorWidth = centerRX - centerLX + 2 #We add 1 because there is 1 wall in the way when connecting to another corridor
+                corridorWidth = centerRX - centerLX + 2 #We add 2 because there are 2 walls in the way when connecting to another corridor. 1 wall at the very beginning, and at the very end.
                 corridorHeight = pathSize + 2 #We add 2 because there are 2 walls we generate
             else:
                 corridorX = centerLX - int(math.ceil(pathSize / 2))
