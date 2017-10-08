@@ -180,15 +180,15 @@ class Map:
             corridorHeight = 0
 
             if horizontalPath:
-                corridorX = centerLX
+                corridorX = centerLX - 1
                 corridorY = centerLY - int(math.ceil(pathSize / 2))
-                corridorWidth = centerRX - centerLX + 1 #We add 1 because there is 1 wall in the way when connecting to another corridor
+                corridorWidth = centerRX - centerLX + 2 #We add 1 because there is 1 wall in the way when connecting to another corridor
                 corridorHeight = pathSize + 2 #We add 2 because there are 2 walls we generate
             else:
                 corridorX = centerLX - int(math.ceil(pathSize / 2))
-                corridorY = centerLY
+                corridorY = centerLY - 1
                 corridorWidth = pathSize + 2
-                corridorHeight = centerRY - centerLY + 1
+                corridorHeight = centerRY - centerLY + 2
                 
             self.corridorList.append(Corridor(corridorX, corridorY, corridorWidth, corridorHeight, horizontalPath))
             self.corridorList[-1].generateEmptyCorridor(self.mapArray) #[-1] means get last element
